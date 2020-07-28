@@ -25,3 +25,16 @@ module.exports.createOrder = async (event) => {
   })
 
 };
+
+module.exports.fulfillOrder = async (event) => {
+
+  const body = JSON.parse(event.body);
+  const orderID = body.orderID;
+  const fulfullmentID = body.fulfullmentID;
+
+  return orderManager.fulfillOrder(orderID, fulfullmentID).then(() => {
+    return createResponse(200, 'Order ' + orderID + ' was sent to delivery');
+  }).catch(error => {
+    return createResponse(400, error);
+  })
+}

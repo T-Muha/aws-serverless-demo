@@ -22,7 +22,7 @@ provider:
       Resource:
         - arn:aws:kinesis:#{AWS::Region}:#{AWS::AccountId}:stream/order-events
 
-#define API Gateway
+#define API Gateways
 functions:
   createOrder:
     handler: handler.createOrder
@@ -30,6 +30,16 @@ functions:
       - http:
           path: /order
           method: post
+    environment:
+      #only need to change names here
+      orderTableName: ordersTable
+      orderStreamName: order-events
+  fulfillOrder:
+    handler: handler.fulfillOrder
+    events:
+    - http:
+        path: /order/fulfill
+        method: post
     environment:
       #only need to change names here
       orderTableName: ordersTable
