@@ -1,5 +1,5 @@
 #Config file for the serverless application
-
+ 
 service: aws-serverless-demo
 
 plugins:
@@ -9,6 +9,7 @@ provider:
   name: aws
   runtime: nodejs12.x
 
+  #permissions for using AWS resources
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -21,8 +22,17 @@ provider:
         - kinesis:PutRecord
       Resource:
         - arn:aws:kinesis:#{AWS::Region}:#{AWS::AccountId}:stream/order-events
+    - Effect: Allow
+      Action:
+        - ses:SendEmail
+      Resource:
+        - "*" #no particular resource
+      Condition:
+        StringEquals:
+          ses:FromAddress:
+            - orderingsystem@sharklasers.com
 
-#define API Gateways
+#define API Gateways/lambda functions
 functions:
   createOrder:
     handler: handler.createOrder
@@ -37,13 +47,22 @@ functions:
   fulfillOrder:
     handler: handler.fulfillOrder
     events:
-    - http:
-        path: /order/fulfill
-        method: post
+      - http:
+          path: /order/fulfill
+          method: post
     environment:
       #only need to change names here
       orderTableName: ordersTable
       orderStreamName: order-events
+  notifyExternalParty:
+    handler: handler.notifyExternalParty
+    events:
+      - stream:
+          arn: arn:aws:kinesis:#{AWS::Region}:#{AWS::AccountId}:stream/order-events
+    environment:
+      region: ${self:provider.region}
+      producerEmail: producer@sharklasers.com
+      orderingSystemEmail: orderingsystem@sharklasers.com
 
 
 #define the AWS resources
