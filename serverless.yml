@@ -31,6 +31,12 @@ provider:
         StringEquals:
           ses:FromAddress:
             - orderingsystem@sharklasers.com
+    - Effect: Allow
+      Action:
+        - sqs:SendMessage
+      Resource:
+        - arn:aws:sqs:#{AWS::Region}:#{AWS::AccountId}:deliveryServiceQueue
+        - arn:aws:sqs:#{AWS::Region}:#{AWS::AccountId}:customerServiceQueue
 
 #define API Gateways/lambda functions
 functions:
@@ -54,6 +60,17 @@ functions:
       #only need to change names here
       orderTableName: ordersTable
       orderStreamName: order-events
+  deliveredOrder:
+    handler: handler.deliveredOrder
+    events:
+      - http:
+          path: /order/delivered
+          method: post
+    environment:
+      region: ${self:provider.region}
+      orderTableName: ordersTable
+      customerServiceQueue:
+        Ref: customerServiceQueue
   notifyExternalParty:
     handler: handler.notifyExternalParty
     events:
@@ -63,6 +80,27 @@ functions:
       region: ${self:provider.region}
       producerEmail: producer@sharklasers.com
       orderingSystemEmail: orderingsystem@sharklasers.com
+      deliveryCompanyQueue:
+        Ref: deliveryServiceQueue
+      orderTableName: ordersTable
+  notifyDeliveryCompany:
+    handler: handler.notifyDeliveryCompany
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt: #other notation for getting arn
+              - deliveryServiceQueue
+              - Arn
+          batchSize: 1 #how many messages before delivery's notified
+  notifyCustomerService:
+    handler: handler.notifyCustomerService
+    events:
+      - sqs:
+          arn:
+            Fn::GetAtt:
+              - customerServiceQueue
+              - Arn
+          batchSize: 1
 
 
 #define the AWS resources
@@ -86,3 +124,11 @@ resources:
           - AttributeName: "orderID"
             KeyType: "HASH"
         BillingMode: PAY_PER_REQUEST
+    deliveryServiceQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: deliveryServiceQueue
+    customerServiceQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: customerServiceQueue

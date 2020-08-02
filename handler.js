@@ -34,7 +34,6 @@ module.exports.createOrder = async (event) => {
 //lambda to fulfill an order
 //triggered when supplier completes order
 module.exports.fulfillOrder = async (event) => {
-
   const body = JSON.parse(event.body);
   const orderID = body.orderID;
   const fulfullmentID = body.fulfullmentID;
@@ -46,18 +45,48 @@ module.exports.fulfillOrder = async (event) => {
   })
 }
 
+//lambda to confirm order delivered
+//triggered when the user confirms their order is delivered
+module.exports.deliveredOrder = async (event) => {
+  const body = JSON.parse(event.body);
+  const orderID = body.orderID;
+  const deliveryCompanyID = body.deliveryCompanyID;
+  const orderReview = body.orderReview;
+
+  return delivererManager.deliveredOrder(orderID, deliveryCompanyID, orderReview).then(() => {
+    return createResponse(200, 'Order ' + orderID + ' has been delivered');
+  }).catch(error => {
+    return createResponse(400, error);
+  })
+}
+
 //lambda to notify about order statuses
 //triggered during stream events
 module.exports.notifyExternalParty = async (event) => {
   const records = kinesisHelper.getRecords(event);
   const producerPromises = getProducerPromises(records);
   const delivererPromises = getDelivererPromises(records);
-
+  
   return Promise.all([producerPromises, delivererPromises]).then(() => {
     return 'all clear';
   }).catch(error => {
+    console.log(error);
     return error;
   })
+}
+
+//lambda to notify delivery company that an order is fulfilled
+//triggered when order message is placed in delivery company sqs queue
+module.exports.notifyDeliveryCompany = async (event) => {
+  console.log('HTTP call to nonexistant delivery company endpoint');
+
+  return 'done';
+}
+
+module.exports.notifyCustomerService = async (event) => {
+  console.log('HTTP call to nonexistant customer service endpoint');
+
+  return 'done'
 }
 
 //filters and carries out notifications for the producer

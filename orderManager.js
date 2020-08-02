@@ -12,22 +12,9 @@ const kinesis = new AWS.Kinesis(); //module to work with kinesis stream
 const TABLE_NAME = process.env.orderTableName;
 const STREAM_NAME = process.env.orderStreamName;
 
-module.exports.createOrder = body => {
-    const order = {
-        orderID: uuidv1(),
-        name: body.name,
-        address: body.address,
-        productID: body.productID,
-        quantity: body.quantity,
-        orderDate: Date.now(),
-        eventType: 'order_place'
-    }
-    return order;
-}
-
 module.exports.placeNewOrder = order => {
     //save order in DynamoDB table and put it in a Kinesis stream
-    return saveOrder(order).then(() => {
+    return this.saveOrder(order).then(() => {
         return placeOrderStream(order);
     })
 }
@@ -36,20 +23,38 @@ module.exports.fulfillOrder = (orderID, fulfillmentID) => {
     //fulfill order in the db and send to the stream
     return getOrder(orderID).then(savedOrder => {
         const order = createFulfilledOrder(savedOrder, fulfillmentID);
-        return saveOrder(order).then(() => {
-            return placeOrderStream(order)
+        return this.saveOrder(order).then(() => {
+            return placeOrderStream(order);
         });
     });
 }
 
 //puts the order in the DB OR updates existing order
-function saveOrder(order) {
-    console.log(order);
+module.exports.saveOrder = order => {
     const params = {
         TableName: TABLE_NAME,
         Item: order
     }
     return dynamo.put(params).promise();
+}
+
+//adds the date the delivery was sent to the order
+module.exports.updateOrderForDelivery = orderID => {
+    //retrieve the order from the db and add date
+    return getOrder(orderID).then(order => {
+        order.sentToDeliveryDate = Date.now();
+        return order;
+    })
+}
+
+//adds information about the delivered order
+module.exports.updateDeliveredOrder = (orderID, deliveryCompanyID, orderReview) => {
+    return getOrder(orderID).then(savedOrder => {
+        savedOrder.deliveryCompanyID = deliveryCompanyID;
+        savedOrder.orderReview = orderReview;
+        savedOrder.deliveredDate = Date.now();
+        return savedOrder;
+    })
 }
 
 //puts the order in the stream
@@ -73,6 +78,19 @@ function getOrder(orderID) {
     return dynamo.get(params).promise().then(result => {
         return result.Item;
     })
+}
+
+module.exports.createOrder = body => {
+    const order = {
+        orderID: uuidv1(),
+        name: body.name,
+        address: body.address,
+        productID: body.productID,
+        quantity: body.quantity,
+        orderDate: Date.now(),
+        eventType: 'order_place'
+    }
+    return order;
 }
 
 function createFulfilledOrder(savedOrder, fulfillmentID) {
