@@ -1,10 +1,8 @@
 # aws-serverless-demo
 
-This is a demo for a serverless application for this course on LinkedIn Learning: -----
+This is my code from a follow-along demo for a serverless application in the *AWS for Developers: Data-Driven Serverless Applications with Kinesis* LinkedIn  Learning course.
 
-It's for a company that takes orders, fulfills the orders, and then sends them to a delivery company.
-
-The application has to HTTP POST endpoints and four lambda functions.
+The application is for a company that takes orders, fulfills the orders, and then sends them to a delivery company, and it has three HTTP POST endpoints and four lambda functions. It utilizes DynamoDB, S3, Kinesis, SES, and SQS services.
 
 
 
@@ -13,6 +11,5 @@ npm: serverless, serverless pseudo-parameters, uuidv1/v1
 
 aws-sdk
 
-serverless plugins: pseudo-parameters
-
+	npm install serverless --save
 	npm install serverless-pseudo-parameters --save
