@@ -6,7 +6,7 @@ The application is for a company that takes orders, fulfills the orders, and the
 
 
 
-#libraries/packages
+# libraries/packages
 npm: serverless, serverless pseudo-parameters, uuidv1/v1
 
 aws-sdk
